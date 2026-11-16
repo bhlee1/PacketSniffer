@@ -1,0 +1,21 @@
+# 캡처 로그 (쿠키 등 민감 정보가 들어갈 수 있음)
+log*.txt
+*.log
+*.pcap
+*.pcapng
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+build/
+dist/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
