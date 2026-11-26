@@ -108,6 +108,5 @@ python traceroute.py -U -v 8.8.8.8    # 헤더 필드 출력
 - PPT 한글 폰트는 맑은 고딕. 글자 크기를 작게 줄이지 않는다.
 
 ## 10. GitHub 상태
-- 로컬 git 저장소만 있다 (커밋 1개 + 이번 변경). 원격에 push 하지 않았다.
-- 저장소 이름과 소유자(개인 / 팀)가 아직 정해지지 않았다.
+- 원격: https://github.com/bhlee1/PacketSniffer (공개, `main`). 11/26 push 완료.
 - push 전 확인: `git log -p` 에 학번·이름이 없는지, `.gitignore` 에 `log.txt`, `*.log` 가 제외되는지.
