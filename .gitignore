@@ -19,3 +19,8 @@ dist/
 .idea/
 .DS_Store
 Thumbs.db
+
+# 제출 문서 (학번·이름 등 개인정보 포함)
+*.pptx
+*.ppt
+*.hwp
