@@ -114,6 +114,8 @@ def show_icmp(out, ip, icmp):
         out("      >> TTL expired at router %s (it reports back with Time Exceeded)" % ip["src"])
     elif icmp["type"] == 0:
         out("      >> destination %s reached" % ip["src"])
+    elif icmp["type"] == 3 and icmp["code"] == 3:
+        out("      >> port unreachable from %s (UDP traceroute: destination reached)" % ip["src"])
 
 
 def show_http(out, http):
