@@ -23,8 +23,11 @@ Claude Code에서 이어서 작업할 때 이 파일을 먼저 읽는다.
 | capture.py | 소켓 생성·수신. Windows: raw socket + `SIO_RCVALL`. Linux: AF_PACKET (테스트용) |
 | parser.py | IP / TCP / UDP / ICMP / HTTP / DNS 해석. `TcpTracker` 로 연결 단계 판별 |
 | main.py | 캡처 실행, SEND/RECV/LOCAL 방향 표시, 요약, 로그 저장 |
-| traceroute.py | ICMP 모드(기본)와 UDP 모드(`-U`, 강의 방식) |
-| examples/sample_output.txt | 출력 예시 |
+| traceroute.py | ICMP 모드(기본)와 UDP 모드(`-U`, 강의 방식). Windows UDP 모드는 RCVALL 수신 자동 사용 |
+| test_traceroute.py | 응답 매칭 자체 검사 (관리자 권한 불필요) |
+
+제출물 (git 미추적, `.gitignore` 의 `*.pptx` 등으로 제외):
+`설계보고서_2팀.pptx` (8쪽, 슬라이드 노트에 대본), `design*.pptx` (같은 파일, 제출용 이름), `소스파일_2팀.zip`, `발표대본.md`
 
 ## 4. 실행 방법 (관리자 권한 필수)
 ```
@@ -78,11 +81,12 @@ python traceroute.py -U -v 8.8.8.8    # 헤더 필드 출력
   (ICMP 프로브의 11 은 받음). 위 결과는 스니퍼(SIO_RCVALL)를 같이 띄워서 받은 것이었다.
   → Windows UDP 모드는 RCVALL 수신을 자동 사용하도록 수정. 단독 실행으로 hop 9 Type 3 Code 3 까지 확인.
 - Windows raw socket 은 수신 SYN+ACK 를 내 3번째 ACK 보다 늦게 넘겨줄 때가 있다 → `TcpTracker` 가 이 순서도 3/3 으로 판별하도록 수정. 실측 확인.
-- 설계보고서용 실행 화면·Wireshark 캡처 완료 (11/26).
+- Wireshark 4.6.9 대조 (같은 시간 tshark 캡처): DNS ID·응답 주소, HTTP GET / 200 OK, UDP 모드 ICMP 11/3 이 스니퍼 출력과 일치.
+- `tracert -d` 대조: hop 2~9 라우터 IP 가 ICMP 모드 결과와 일치.
+- 설계보고서용 실행 화면·Wireshark 캡처 완료 (11/26). PPT 5쪽 HTTP 응답 화면은 요청 화면과 다른 실행 세션(포트 56155) — 슬라이드에 명시함.
 - 규칙은 테스트 후 삭제했다. 시연·로그 수집 때는 README "방화벽 설정" 대로 다시 추가한다.
 
 **미검증**
-- Wireshark(Npcap) 와 출력 대조.
 - 팀원 PC, 사설망(공유기 뒤) 환경. 다른 보안 프로그램이 있으면 결과가 다를 수 있다.
 - 루프백은 Windows raw socket 으로 캡처되지 않는다 (정상). 외부 주소로 테스트한다.
 
@@ -94,14 +98,17 @@ python traceroute.py -U -v 8.8.8.8    # 헤더 필드 출력
 - HTTP/1.1 요청 후 응답이 안 보이면: 관리자 권한, 바인딩한 NIC IP(`-i`), 포트 필터(`-a`)를 순서대로 확인한다.
 
 ## 8. 남은 작업 (우선순위 순)
-1. Windows 실기에서 캡처를 돌려 `log.txt` 를 만든다. (HTTP, DNS, ICMP, traceroute 각각)
-2. §6 미검증 항목을 확인하고 결과를 기록한다.
-3. **설계보고서 PPT 8쪽을 새로 만든다.** 기존 `설계보고서.pptx` 는 C/Linux 기준이라 쓰지 않는다.
-   - 구성 제안: 목표 / 설계 환경 / 설계 내용(구조·헤더 파싱) / 결과 1 (HTTP, DNS) / 결과 2 (traceroute ICMP·UDP) / Wireshark 비교 / 기대효과 / 정리.
-   - 결과 화면은 팀원 PC 의 실제 `log.txt` 와 캡처 화면을 쓴다. 예시 출력을 결과로 제출하지 않는다.
-   - ICMP Type 0 / 3 / 8 / 11 필드 설명과 UDP 모드 설명을 넣는다.
-4. 소스파일 압축 (capture.py, parser.py, main.py, traceroute.py, README.md). 개인정보 확인 후 제출.
-5. 발표 대본 갱신 (UDP 모드 반영).
+1. **eclass 업로드 (11/27 19:00 마감)**: 설계보고서 PPT + `소스파일_2팀.zip`. 사람이 직접 한다.
+2. 발표 리허설. 대본 약 2,800자, 7~10분. 시연하려면 관리자 cmd + README "방화벽 설정" 규칙을 먼저 추가한다.
+3. (선택) 팀원 PC 에서 한 번 실행해 본다 (§6 미검증).
+4. (선택) `log.txt` 파일 저장: 결과 화면 캡처는 끝났지만 `-o log.txt` 로 저장한 로그 파일은 없다.
+   필요하면 `python main.py -a -o log.txt` 로 만든다 (`.gitignore` 로 제외됨).
+
+**완료 (11/26)**
+- Windows 실기 검증, Wireshark·tracert 대조 (§6).
+- 설계보고서 PPT 8쪽: 표지 / 목표 / 환경 / 설계 내용 / 결과① HTTP·DNS / 결과② traceroute / 검증 / 기대효과. 실제 실행 화면 사용, 맑은 고딕.
+- 소스파일 압축: capture.py, parser.py, main.py, traceroute.py, test_traceroute.py, README.md. 커밋 `f134a29` 기준, 개인정보 없음 확인.
+- 발표 대본 (UDP 모드, 실측 중 해결한 문제 3가지 반영): `발표대본.md` + PPT 슬라이드 노트.
 
 ## 9. 작업 규칙
 - 코드는 표준 라이브러리만 쓴다. Windows 와 Linux 둘 다 import 에러 없이 돌아야 한다.
