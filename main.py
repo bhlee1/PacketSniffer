@@ -195,7 +195,7 @@ def main():
             if ip["frag_off"]:                             # 첫 조각이 아니면 L4 헤더 없음
                 continue
 
-            # ⑤ 전송 계층 해석: Protocol 값으로 분기
+            # ⑤ Protocol 값으로 분기: TCP·UDP(전송 계층), ICMP(네트워크 계층)
             proto, l4, app, kind = ip["proto"], None, None, None
             if proto == P.PROTO_TCP:
                 l4 = P.parse_tcp(ip["payload"])
