@@ -43,7 +43,7 @@ python traceroute.py -U -v 8.8.8.8    # 응답의 IP / ICMP 헤더 필드 출력
 ```
 
 옵션: `-q N` TTL당 프로브 수(기본 3), `-m N` 최대 TTL(기본 30), `-w SEC` 대기 시간(기본 2), `-i IP` 내 IP,
-`--rcvall` Time Exceeded 가 안 보이면 SIO_RCVALL 캡처로 ICMP 를 받음.
+`--rcvall` ICMP 를 SIO_RCVALL 캡처로 받음 (Windows UDP 모드는 자동 적용: Windows raw ICMP 소켓은 UDP 프로브에 대한 ICMP 오류를 받지 못함).
 다른 창에서 `python main.py -a --proto icmp` 를 같이 띄우면 프로브 송신과 ICMP 응답이 스니퍼에 함께 찍힙니다.
 
 종료는 `Ctrl+C` 입니다. 종료 시 캡처 요약(패킷 수, 송/수신 수, HTTP/DNS 메시지 수)이 출력됩니다.

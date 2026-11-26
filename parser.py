@@ -97,7 +97,8 @@ class TcpTracker:
             phase = "Data transfer: %d bytes of payload" % plen
             if c["state"] == 2:
                 c["state"] = 3
-        elif c["state"] == 2 and me == c["client"]:
+        # state 1: Windows raw socket 은 수신 SYN+ACK 를 내 ACK 보다 늦게 넘겨줄 수 있다
+        elif c["state"] in (1, 2) and me == c["client"]:
             phase, c["state"] = "Connection setup 3/3 (ACK): connection established", 3
         elif acks_fin:
             phase = "Connection release (ACK): acknowledges peer FIN"

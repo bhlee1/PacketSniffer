@@ -12,7 +12,7 @@ traceroute.py - raw socket traceroute (강의자료 Chapter 5, 5-88 / 5-89)
   -m N         최대 TTL (기본 30)
   -w SEC       프로브당 응답 대기 시간 (기본 2초)
   -i IP        내 IP 주소 (Windows 에서 ICMP 소켓을 bind 할 주소, 생략하면 자동)
-  --rcvall     ICMP 수신을 SIO_RCVALL 캡처로 받는다 (Windows 에서 Time Exceeded 가 안 보일 때)
+  --rcvall     ICMP 수신을 SIO_RCVALL 캡처로 받는다 (Windows UDP 모드는 자동으로 켜진다)
   -v           응답의 IP / ICMP 헤더 필드 출력
 
 동작
@@ -134,14 +134,16 @@ def main():
         sys.exit("주소를 알 수 없다: %s" % args.target)
     local_ip = args.ip or get_local_ip()
     mode = "udp" if args.udp else "icmp"
+    # Windows raw ICMP 소켓은 UDP 프로브에 대한 ICMP 오류(11, 3)를 받지 못한다 (11/26 실측)
+    rcvall = args.rcvall or (args.udp and IS_WINDOWS)
 
     try:
-        rx = open_icmp_receiver(local_ip, args.rcvall)
+        rx = open_icmp_receiver(local_ip, rcvall)
         if args.udp:
             tx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             tx.bind(("", 0))
             sport = tx.getsockname()[1]
-        elif args.rcvall:                   # RCVALL 소켓은 IP_HDRINCL 이라 송신용 ICMP 소켓을 따로 연다
+        elif rcvall:                        # RCVALL 소켓은 IP_HDRINCL 이라 송신용 ICMP 소켓을 따로 연다
             tx = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)
         else:
             tx = rx
