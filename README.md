@@ -18,6 +18,8 @@ IP → TCP / UDP / ICMP → HTTP / DNS 순서로 헤더를 해석해 보여줍�
 | `main.py` | 실행 진입점. 옵션 처리, 필터링, 화면/로그 출력, 요약 통계 |
 | `capture.py` | 캡처 모듈. raw socket 생성, 패킷 수신 |
 | `parser.py` | 헤더 해석 모듈. IP, TCP, UDP, ICMP, HTTP, DNS 파싱 |
+| `traceroute.py` | traceroute. ICMP Echo 방식(기본)과 UDP 방식(`-U`) |
+| `test_traceroute.py` | traceroute 응답 매칭 자체 검사 (관리자 권한 불필요) |
 
 ## 사용법
 
@@ -31,6 +33,18 @@ python main.py -p 80              # 80번 포트만 출력
 python main.py -a                 # 포트 필터 없이 모든 TCP/UDP/ICMP 출력
 python main.py -a -c 20 -x        # 모든 패킷 20개만 출력, 페이로드 hexdump 포함
 ```
+
+### traceroute
+
+```bash
+python traceroute.py 8.8.8.8          # ICMP Echo 방식 (Windows tracert 와 동일)
+python traceroute.py -U 8.8.8.8       # UDP 방식: 목적 포트 33434부터 프로브마다 +1, Port Unreachable(3/3)에서 종료
+python traceroute.py -U -v 8.8.8.8    # 응답의 IP / ICMP 헤더 필드 출력
+```
+
+옵션: `-q N` TTL당 프로브 수(기본 3), `-m N` 최대 TTL(기본 30), `-w SEC` 대기 시간(기본 2), `-i IP` 내 IP,
+`--rcvall` Time Exceeded 가 안 보이면 SIO_RCVALL 캡처로 ICMP 를 받음.
+다른 창에서 `python main.py -a --proto icmp` 를 같이 띄우면 프로브 송신과 ICMP 응답이 스니퍼에 함께 찍힙니다.
 
 종료는 `Ctrl+C` 입니다. 종료 시 캡처 요약(패킷 수, 송/수신 수, HTTP/DNS 메시지 수)이 출력됩니다.
 

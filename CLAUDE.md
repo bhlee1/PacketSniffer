@@ -1,0 +1,106 @@
+# CLAUDE.md — PacketSniffer 프로젝트 지침
+
+Claude Code에서 이어서 작업할 때 이 파일을 먼저 읽는다.
+개인정보(학번 등)는 이 파일과 공개 저장소에 넣지 않는다.
+
+## 1. 프로젝트 개요
+- 과목: 컴퓨터네트워크설계 (2팀)
+- 과제: raw socket 으로 패킷을 캡처하고 IP / TCP·UDP / 응용 계층 헤더를 분석한다.
+- 필수: 송신과 수신을 모두 캡처한다. HTTP, DNS 를 처리한다.
+- 선택: e-mail, traceroute, BitTorrent. 우리 팀은 **traceroute** 를 선택했다.
+- 환경: **Windows 10/11 + Python 3 (표준 라이브러리 socket, struct만 사용)**
+- 외부 라이브러리를 추가하지 않는다.
+- 비교 검증: Wireshark(Npcap) 캡처와 출력을 대조한다.
+
+## 2. 제출물과 마감
+- 설계계획서: PPT 5쪽. 11/13 19:00. 제출 완료.
+- 설계보고서: PPT 8쪽 + 소스파일. **11/27 19:00**. eclass 업로드.
+- 보고서 포함 내용: 목표, 설계 환경, 설계내용 및 결과, 기대효과.
+
+## 3. 파일 역할
+| 파일 | 역할 |
+|---|---|
+| capture.py | 소켓 생성·수신. Windows: raw socket + `SIO_RCVALL`. Linux: AF_PACKET (테스트용) |
+| parser.py | IP / TCP / UDP / ICMP / HTTP / DNS 해석. `TcpTracker` 로 연결 단계 판별 |
+| main.py | 캡처 실행, SEND/RECV/LOCAL 방향 표시, 요약, 로그 저장 |
+| traceroute.py | ICMP 모드(기본)와 UDP 모드(`-U`, 강의 방식) |
+| examples/sample_output.txt | 출력 예시 |
+
+## 4. 실행 방법 (관리자 권한 필수)
+```
+# 스니퍼 (Windows: 관리자 cmd)
+python main.py                 # 기본: 포트 80, 53
+python main.py -a              # 모든 포트 (traceroute UDP 프로브도 보임)
+python main.py -p 8080         # 포트 지정
+python main.py --proto icmp    # ICMP만
+python main.py -c 50 -o log.txt
+python main.py -x              # 페이로드 hex 덤프
+
+# traceroute
+python traceroute.py 8.8.8.8          # ICMP Echo 방식 (Windows tracert 와 동일)
+python traceroute.py -U 8.8.8.8       # UDP 방식 (강의 방식)
+python traceroute.py -U -v 8.8.8.8    # 헤더 필드 출력
+```
+- 두 창을 동시에 띄운다: 한쪽은 `main.py -a --proto icmp` (또는 `-a`), 다른 쪽은 traceroute.
+- 이렇게 하면 프로브 송신과 ICMP 응답 수신이 스니퍼에 같이 찍힌다.
+
+## 5. traceroute 두 방식 (강의자료 Chapter 5, 슬라이드 5-88, 5-89 기준)
+| 구분 | ICMP 모드 (기본) | UDP 모드 (`-U`) |
+|---|---|---|
+| 프로브 | ICMP Echo Request (Type 8) | UDP, 목적 포트 33434부터 프로브마다 +1 |
+| 중간 라우터 응답 | ICMP Type 11 Code 0 (Time Exceeded) | 동일 |
+| 목적지 응답 | ICMP Type 0 (Echo Reply) | ICMP Type 3 Code 3 (Port Unreachable) |
+| 종료 조건 | 목적지에서 Echo Reply 수신 | 목적지에서 Type 3 Code 3 수신 |
+| 응답 매칭 | ICMP id + seq | 본문 속 원본 UDP 의 (출발 포트, 목적 포트) |
+- TTL 마다 프로브 3개를 보낸다 (`-q`).
+- ICMP 오류 본문은 원본 IP 헤더 + 원본 데이터 앞 8바이트다. 매칭에 이 값을 쓴다.
+- Windows `tracert` 는 ICMP 방식이고, `-d` 없이 실행하면 DNS PTR 질의(UDP 53)도 보낸다.
+
+## 6. 검증 상태
+**검증됨 (Linux 샌드박스, root)**
+- 스니퍼: HTTP 12 TCP 세그먼트와 단계 판별, DNS 질의/응답, ICMP Echo/Time Exceeded.
+- 파서: 비정상 입력 fuzz 테스트 통과.
+- traceroute ICMP 모드: 루프백 Echo Reply, 8.8.8.8 hop 1 Time Exceeded.
+- traceroute UDP 모드: 루프백 Type 3 Code 3 으로 종료, 합성 패킷 매칭 (Type 11, Type 3, 포트 불일치, 쓰레기 입력).
+
+**미검증 (반드시 Windows 실기에서 확인)**
+- `SIO_RCVALL` 로 송신 패킷까지 캡처되는지.
+- Windows 에서 raw ICMP socket 이 Time Exceeded(UDP 모드 포함)를 수신하는지. 불확실.
+  - 수신 안 되면: ICMP socket 을 로컬 IP 에 bind 하고 `ioctl(SIO_RCVALL, RCVALL_ON)` 을 켠다.
+  - 확인법: UDP 모드 실행 중 Wireshark 에서 ICMP 11 이 보이는데 프로그램에 안 뜨는지 본다.
+- Windows 방화벽·보안 프로그램이 ICMP 응답을 막는지. 막으면 `*` 가 출력된다.
+- 루프백은 Windows raw socket 으로 캡처되지 않는다 (정상). 외부 주소로 테스트한다.
+- 11/26 Windows **비관리자** 셸에서 실행한 결과: raw ICMP socket 은 열렸지만 응답 0개 (같은 시각 `tracert -d` 는 hop 2, 3 응답).
+  `--rcvall` 은 권한 오류. → 관리자 cmd 에서 `traceroute.py`, `traceroute.py --rcvall` 순서로 다시 확인한다.
+- `test_traceroute.py` (합성 패킷 매칭 검사) 는 Windows 에서 통과.
+
+## 7. 알려진 제약
+- Windows 는 raw socket 으로 TCP 송신을 막는다. 캡처만 하고 송신은 일반 소켓/브라우저로 한다.
+- HTTP 는 평문 HTTP/1.1 만 해석한다. HTTPS 는 암호화되어 본문을 못 본다.
+- IPv4 만 지원한다.
+- HTTP 테스트는 평문 사이트(예: `http://example.com`)를 쓴다.
+- HTTP/1.1 요청 후 응답이 안 보이면: 관리자 권한, 바인딩한 NIC IP(`-i`), 포트 필터(`-a`)를 순서대로 확인한다.
+
+## 8. 남은 작업 (우선순위 순)
+1. Windows 실기에서 캡처를 돌려 `log.txt` 를 만든다. (HTTP, DNS, ICMP, traceroute 각각)
+2. §6 미검증 항목을 확인하고 결과를 기록한다.
+3. **설계보고서 PPT 8쪽을 새로 만든다.** 기존 `설계보고서.pptx` 는 C/Linux 기준이라 쓰지 않는다.
+   - 구성 제안: 목표 / 설계 환경 / 설계 내용(구조·헤더 파싱) / 결과 1 (HTTP, DNS) / 결과 2 (traceroute ICMP·UDP) / Wireshark 비교 / 기대효과 / 정리.
+   - 결과 화면은 팀원 PC 의 실제 `log.txt` 와 캡처 화면을 쓴다. 예시 출력을 결과로 제출하지 않는다.
+   - ICMP Type 0 / 3 / 8 / 11 필드 설명과 UDP 모드 설명을 넣는다.
+4. 소스파일 압축 (capture.py, parser.py, main.py, traceroute.py, README.md). 개인정보 확인 후 제출.
+5. 발표 대본 갱신 (UDP 모드 반영).
+
+## 9. 작업 규칙
+- 코드는 표준 라이브러리만 쓴다. Windows 와 Linux 둘 다 import 에러 없이 돌아야 한다.
+- 헤더 해석은 `struct.unpack('!...')` 를 쓴다. 길이는 IHL×4, Data Offset×4 로 계산한다.
+- 모든 `parse_*` 는 실패 시 None 을 돌려준다. 예외로 프로그램이 죽으면 안 된다.
+- 수정 후 Linux 에서 `sudo python3 traceroute.py -U 127.0.0.1` 같은 루프백 테스트로 회귀를 확인한다.
+- 실행해 보지 않은 동작은 "미검증" 으로 표시한다. 추측으로 단정하지 않는다.
+- 학번·이름 등 개인정보는 코드, README, 커밋 메시지에 넣지 않는다. 표지/제출 문서에만 쓴다.
+- PPT 한글 폰트는 맑은 고딕. 글자 크기를 작게 줄이지 않는다.
+
+## 10. GitHub 상태
+- 로컬 git 저장소만 있다 (커밋 1개 + 이번 변경). 원격에 push 하지 않았다.
+- 저장소 이름과 소유자(개인 / 팀)가 아직 정해지지 않았다.
+- push 전 확인: `git log -p` 에 학번·이름이 없는지, `.gitignore` 에 `log.txt`, `*.log` 가 제외되는지.
