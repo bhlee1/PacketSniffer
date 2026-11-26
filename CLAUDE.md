@@ -63,16 +63,23 @@ python traceroute.py -U -v 8.8.8.8    # 헤더 필드 출력
 - traceroute ICMP 모드: 루프백 Echo Reply, 8.8.8.8 hop 1 Time Exceeded.
 - traceroute UDP 모드: 루프백 Type 3 Code 3 으로 종료, 합성 패킷 매칭 (Type 11, Type 3, 포트 불일치, 쓰레기 입력).
 
-**미검증 (반드시 Windows 실기에서 확인)**
-- `SIO_RCVALL` 로 송신 패킷까지 캡처되는지.
-- Windows 에서 raw ICMP socket 이 Time Exceeded(UDP 모드 포함)를 수신하는지. 불확실.
-  - 수신 안 되면: ICMP socket 을 로컬 IP 에 bind 하고 `ioctl(SIO_RCVALL, RCVALL_ON)` 을 켠다.
-  - 확인법: UDP 모드 실행 중 Wireshark 에서 ICMP 11 이 보이는데 프로그램에 안 뜨는지 본다.
-- Windows 방화벽·보안 프로그램이 ICMP 응답을 막는지. 막으면 `*` 가 출력된다.
+**검증됨 (11/26, Windows 11 + Python 3.15, 관리자, 공용 네트워크, 8.8.8.8)**
+- `test_traceroute.py` (합성 패킷 매칭 검사) 통과.
+- `SIO_RCVALL` 로 송신 패킷까지 캡처된다.
+- 방화벽 규칙 없이: 송신 전부, 수신 DNS 는 캡처됨. 수신 TCP(HTTP 응답), Echo Reply 외 수신 ICMP(Time Exceeded) 는 안 보임.
+  같은 시각 `tracert -d` 는 hop 2~9 응답 → 패킷은 도착하는데 Windows 방화벽이 raw socket 전달을 막음.
+- python.exe 인바운드 허용 규칙 추가 → 스니퍼에 HTTP Request/Response, Echo Reply 수신됨. Time Exceeded 는 여전히 안 보임.
+- ICMPv4 Type 11, 3 인바운드 허용 규칙까지 추가 → 전부 정상:
+  - ICMP 모드: hop 2~8 Time Exceeded, hop 9 Echo Reply 로 종료.
+  - UDP 모드 (`-U`, `-U --rcvall` 둘 다): hop 2~8 Time Exceeded, hop 9 Type 3 Code 3 (포트 33450, 33451) 로 종료.
+  - 스니퍼 `-a --proto icmp`: Type 8/0/11/3 모두 SEND/RECV 로 표시, 3/3 해석 문구 출력.
+- hop 1 은 `tracert` 에서도 `*` (공유기가 응답 안 함, 정상).
+- 규칙은 테스트 후 삭제했다. 시연·로그 수집 때는 README "방화벽 설정" 대로 다시 추가한다.
+
+**미검증**
+- Wireshark(Npcap) 와 출력 대조.
+- 팀원 PC, 사설망(공유기 뒤) 환경. 다른 보안 프로그램이 있으면 결과가 다를 수 있다.
 - 루프백은 Windows raw socket 으로 캡처되지 않는다 (정상). 외부 주소로 테스트한다.
-- 11/26 Windows **비관리자** 셸에서 실행한 결과: raw ICMP socket 은 열렸지만 응답 0개 (같은 시각 `tracert -d` 는 hop 2, 3 응답).
-  `--rcvall` 은 권한 오류. → 관리자 cmd 에서 `traceroute.py`, `traceroute.py --rcvall` 순서로 다시 확인한다.
-- `test_traceroute.py` (합성 패킷 매칭 검사) 는 Windows 에서 통과.
 
 ## 7. 알려진 제약
 - Windows 는 raw socket 으로 TCP 송신을 막는다. 캡처만 하고 송신은 일반 소켓/브라우저로 한다.
