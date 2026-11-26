@@ -74,6 +74,11 @@ python traceroute.py -U -v 8.8.8.8    # 헤더 필드 출력
   - UDP 모드 (`-U`, `-U --rcvall` 둘 다): hop 2~8 Time Exceeded, hop 9 Type 3 Code 3 (포트 33450, 33451) 로 종료.
   - 스니퍼 `-a --proto icmp`: Type 8/0/11/3 모두 SEND/RECV 로 표시, 3/3 해석 문구 출력.
 - hop 1 은 `tracert` 에서도 `*` (공유기가 응답 안 함, 정상).
+- 단독 실행 시 UDP 모드는 전 hop `*`: Windows raw ICMP socket 은 UDP 프로브에 대한 ICMP 11/3 을 못 받는다
+  (ICMP 프로브의 11 은 받음). 위 결과는 스니퍼(SIO_RCVALL)를 같이 띄워서 받은 것이었다.
+  → Windows UDP 모드는 RCVALL 수신을 자동 사용하도록 수정. 단독 실행으로 hop 9 Type 3 Code 3 까지 확인.
+- Windows raw socket 은 수신 SYN+ACK 를 내 3번째 ACK 보다 늦게 넘겨줄 때가 있다 → `TcpTracker` 가 이 순서도 3/3 으로 판별하도록 수정. 실측 확인.
+- 설계보고서용 실행 화면·Wireshark 캡처 완료 (11/26).
 - 규칙은 테스트 후 삭제했다. 시연·로그 수집 때는 README "방화벽 설정" 대로 다시 추가한다.
 
 **미검증**
