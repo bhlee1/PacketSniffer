@@ -116,10 +116,26 @@ python traceroute.py -U -v 8.8.8.8    # 응답의 IP / ICMP 헤더 필드 출력
 - `parser.py`는 파이썬 옛 표준 모듈 `parser`와 이름이 같습니다. Python 3.10 이상에서는 문제없지만, 3.9 이하에서는 충돌 가능성이 있습니다.
 - **본인 소유 PC / 허가된 네트워크에서만 사용하세요.** 타인의 통신을 무단으로 캡처하는 것은 법적 문제가 될 수 있습니다. 로그 파일에는 HTTP 헤더(쿠키 등) 같은 민감한 정보가 담길 수 있으니 Git에 올리지 마세요. `.gitignore`에 `log*.txt`, `*.log`, `*.pcap` 등이 이미 등록되어 있으니 로그 파일 이름을 `log*.txt` 형태(예: `log.txt`)로 지정하세요.
 
+## 방화벽 설정 (Windows, 수신 패킷이 안 보일 때)
+
+Windows 방화벽은 raw socket 으로 들어오는 패킷을 막습니다. 규칙이 없으면 송신 패킷과 DNS 응답만 보이고,
+HTTP 응답(수신 TCP)과 traceroute 의 Time Exceeded / Port Unreachable 이 보이지 않습니다 (`*` 만 출력).
+관리자 PowerShell 에서 아래 규칙을 추가하세요. 경로는 `python -c "import sys; print(sys.executable)"` 로 확인합니다.
+
+```powershell
+$py = "<python.exe 경로>"
+New-NetFirewallRule -DisplayName PacketSniffer -Direction Inbound -Action Allow -Program $py
+New-NetFirewallRule -DisplayName PacketSniffer -Direction Inbound -Action Allow -Protocol ICMPv4 -IcmpType 11
+New-NetFirewallRule -DisplayName PacketSniffer -Direction Inbound -Action Allow -Protocol ICMPv4 -IcmpType 3
+# 다 쓴 뒤 삭제
+Remove-NetFirewallRule -DisplayName PacketSniffer
+```
+
 ## 트러블슈팅
 
 | 증상 | 해결 |
 |------|------|
 | `raw socket 생성 실패: 관리자 권한으로 실행하라` | 터미널을 "관리자 권한으로 실행"으로 다시 열기 |
 | `캡처 시작 실패: ...` | 관리자 권한 확인, `-i 내IP주소` 로 IP 직접 지정 |
+| 송신만 보이고 HTTP 응답·Time Exceeded 가 안 보임, traceroute 가 `*` 만 출력 | 위 "방화벽 설정" 의 규칙 추가 |
 | 아무 패킷도 안 나옴 | `-a` 로 포트 필터 해제, `-i` 로 올바른 어댑터 IP 지정, 방화벽/보안 프로그램 확인 |
