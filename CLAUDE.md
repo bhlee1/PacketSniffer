@@ -101,14 +101,14 @@ python traceroute.py -U -v 8.8.8.8    # 헤더 필드 출력
 1. **eclass 업로드 (11/27 19:00 마감)**: 설계보고서 PPT + `소스파일_2팀.zip`. 사람이 직접 한다.
 2. 발표 리허설. 대본 약 2,800자, 7~10분. 시연하려면 관리자 cmd + README "방화벽 설정" 규칙을 먼저 추가한다.
 3. (선택) 팀원 PC 에서 한 번 실행해 본다 (§6 미검증).
-4. (선택) `log.txt` 파일 저장: 결과 화면 캡처는 끝났지만 `-o log.txt` 로 저장한 로그 파일은 없다.
-   필요하면 `python main.py -a -o log.txt` 로 만든다 (`.gitignore` 로 제외됨).
 
 **완료 (11/26)**
 - Windows 실기 검증, Wireshark·tracert 대조 (§6).
 - 설계보고서 PPT 8쪽: 표지 / 목표 / 환경 / 설계 내용 / 결과① HTTP·DNS / 결과② traceroute / 검증 / 기대효과. 실제 실행 화면 사용, 맑은 고딕.
 - 소스파일 압축: capture.py, parser.py, main.py, traceroute.py, test_traceroute.py, README.md. 커밋 `f134a29` 기준, 개인정보 없음 확인.
 - 발표 대본 (UDP 모드, 실측 중 해결한 문제 3가지 반영): `발표대본.md` + PPT 슬라이드 노트.
+- 실측 로그 (`-o` 저장, `.gitignore` 의 `log*.txt` 로 제외): `log_http.txt`, `log_dns.txt`,
+  `log_icmp_sniffer.txt` + `log_icmp_traceroute.txt`, `log_udp_sniffer.txt` + `log_udp_traceroute.txt` (`-U -v`).
 
 ## 9. 작업 규칙
 - 코드는 표준 라이브러리만 쓴다. Windows 와 Linux 둘 다 import 에러 없이 돌아야 한다.
